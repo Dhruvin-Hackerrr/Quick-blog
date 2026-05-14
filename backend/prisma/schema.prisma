@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  AUTHOR
+  READER
+}
+
+model User {
+  userId String @id @default(uuid())
+
+  firstName    String
+  lastName     String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+
+  isActive Boolean @default(true)
+
+  lastLoginAt DateTime?
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts             Post[]
+  comments          Comment[]
+  sessions          AuthSession[]
+  blacklistedTokens TokenBlacklist[]
+}
+
+model Post {
+  postId String @id @default(uuid())
+
+  title String
+  slug  String @unique
+  body  String
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [userId], onDelete: Cascade)
+
+  isPublished Boolean @default(true)
+
+  isEdited  Boolean @default(false)
+  editCount Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  comments Comment[]
+}
+
+model Comment {
+  commentId String @id @default(uuid())
+
+  message String
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [postId], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+}
+
+model AuthSession {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  refreshTokenHash String
+  isRevoked        Boolean @default(false)
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TokenBlacklist {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  tokenHash String
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
