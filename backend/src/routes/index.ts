@@ -1,5 +1,6 @@
-import express, { Router } from "express";
+import { Router } from "express";
 import authRouter from "./auth.route.js";
+import blogRouter from "./blog.route.js";
 
 const router: Router = Router();
 
@@ -12,6 +13,10 @@ const defaultRoutes: IRoute[] = [
   {
     path: "/auth",
     route: authRouter,
+  },
+  {
+    path: "/blog",
+    route: blogRouter,
   },
 ];
 

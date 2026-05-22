@@ -1,16 +1,21 @@
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/ApiContext";
+import UnauthorizedPage from "../components/Unauthorized";
+import FullScreenLoader from "../components/ScreenLoader";
 
 export default function ProtectedRoute({ children, allowedRole = [] }) {
-  const { role, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { role, isAuthenticated, loading } = useAuth();
+
+  if(loading) {
+    return <FullScreenLoader text="Loading..." />
+  }
 
   if (!role || !isAuthenticated) {
-    navigate("/login");
+    return <Navigate to="/login" replace/>
   }
 
   if (!allowedRole.includes(role)) {
-    navigate("/");
+    return <UnauthorizedPage />
   }
   return children;
 }

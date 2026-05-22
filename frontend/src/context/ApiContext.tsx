@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { fetchUser, loginUser, logoutUser, registerUser } from "../api/auth";
 import { clearAccessToken, setAccessToken } from "../utils/localStorage";
 import { useNavigate } from "react-router-dom";
-import type { registerFormData } from "../validations/authSchema";
+import FullScreenLoader from "../components/ScreenLoader";
+import type { registerFormData } from "../types/authtype";
 
 const AuthContext = createContext(null);
 
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ).data.data;
         setAccessToken(user.accessToken);
         setUser(user.safeUser);
-        navigate("/post")
+        navigate("/")
       } catch (error) {
         console.log(error);
       }
@@ -67,6 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       navigate("/");
     },
   };
+
+  if(loading) {
+    return <FullScreenLoader text="Loading..."/>
+  }
 
   return <AuthContext.Provider value={values}>{children}</AuthContext.Provider>;
 }

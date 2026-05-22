@@ -1,29 +1,41 @@
-import { LayoutDashboard, PenSquare, FileText } from "lucide-react";
+import { LayoutDashboard, PenSquare, FileText, House } from "lucide-react";
 import { useAuth } from "../context/ApiContext";
 import Button from "../ui/Button";
 import { useLocation, useNavigate } from "react-router-dom";
+import { showError } from "../utils/toast";
+import { Role } from "../types/authtype";
 
 export default function Sidebar() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, loading , role} = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const menu = [
     {
-      name: user ? "Dashboard" : "Home",
-      icon: LayoutDashboard,
+      name: "Home",
+      icon: House,
       path: "/",
     },
     {
       name: "Write",
       icon: PenSquare,
-      path: "/post",
+      path: "/blog/publish",
+      requiresAuth: true,
     },
     {
       name: "Articles",
       icon: FileText,
-      path: "/post/all",
+      path: "/blogs",
     },
+    ...(role === Role.AUTHOR
+      ? [
+          {
+            name: "Dashboard",
+            icon: LayoutDashboard,
+            path: "/dashboard",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -45,7 +57,15 @@ export default function Sidebar() {
             return (
               <Button
                 key={item.name}
-                onClick={() => navigate(item.path)}
+                disabled={loading}
+                onClick={() => {
+                  if (item.requiresAuth && !isAuthenticated) {
+                    navigate("/login")
+                    showError("Please Login to continue")
+                    return;
+                  }
+                  navigate(item.path);
+                }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition cursor-pointer
                   ${
                     isActive

@@ -18,6 +18,24 @@ enum UserRole {
   READER
 }
 
+enum Category {
+  TECHNOLOGY
+  PROGRAMMING
+  WEB_DEVELOPMENT
+  MOBILE_DEVELOPMENT
+  AI_ML
+  DATA_SCIENCE
+  DESIGN
+  DEVOPS
+  SECURITY
+  STARTUPS
+  CAREER
+  LIFESTYLE
+  FINANCE
+  EDUCATION
+  PRODUCTIVITY
+}
+
 model User {
   userId String @id @default(uuid())
 
@@ -46,9 +64,11 @@ model User {
 model Post {
   postId String @id @default(uuid())
 
-  title String
-  slug  String @unique
-  body  String
+  title       String
+  slug        String   @unique
+  slugDisplay String    
+  body        Json
+  category    Category @default(PRODUCTIVITY)
 
   authorId String
   author   User   @relation(fields: [authorId], references: [userId], onDelete: Cascade)

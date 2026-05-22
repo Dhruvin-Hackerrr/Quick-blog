@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Role } from "../types/authtype";
 
 export const loginSchema = z.object({
   email: z.string().email("Invalid Email Format"),
@@ -24,13 +25,11 @@ export const registerSchema = z
       .min(8, "Password must contain atleast 8 characters")
       .max(16, "Password must contain atmost 16 characters"),
     confirmPassword: z.string(),
-    role: z.enum(["AUTHOR", "READER"]),
+    role: z.enum(Role),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Password do not match",
     path: ["confirmPassword"],
   });
 
-export type loginFormData = z.infer<typeof loginSchema>;
 
-export type registerFormData = z.infer<typeof registerSchema>;

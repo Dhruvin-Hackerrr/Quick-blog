@@ -7,6 +7,9 @@ import {
 
 const BASE_URL = "http://localhost:5000/api/v1";
 
+let isRefreshing = false;
+let failedQueue = [];
+
 export const api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,
@@ -30,42 +33,52 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (res) => {
-    const token = res.headers["new-access-token"];
-    if (token) {
-      clearAccessToken();
-      setAccessToken(token);
-    }
-    return res;
-  },
+  (res) => res,
   async (error) => {
     const originalRequest = error.config;
-
-    if (error.response.status === 401 && !originalRequest._retry) {
+    if (
+      error.response.status === 401 &&
+      error.response.data.message === "Access token expired" &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
 
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject, originalRequest });
+        });
+      }
+
       try {
+        isRefreshing = true;
         const response = await axios.post(
-          "http://localhost:3000/api/v1/auth/refresh",
+          "http://localhost:5000/api/v1/auth/refresh",
           {},
           { withCredentials: true }
         );
-        console.log(response);
-
+        
         const newAccessToken = response.data.data;
-        console.log(newAccessToken);
-
-        clearAccessToken();
 
         setAccessToken(newAccessToken);
+
+        failedQueue.forEach((req) => {
+          req.originalRequest.headers[
+            "Authorization"
+          ] = `Bearer ${newAccessToken}`;
+          req.resolve(api(req.originalRequest));
+        });
+
+        failedQueue = [];
 
         originalRequest.headers.authorization = `Bearer ${newAccessToken}`;
 
         return api(originalRequest);
       } catch (refreshError) {
         clearAccessToken();
-        window.location.href = "/login";
+        // window.location.href = "/login";
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
     const message =

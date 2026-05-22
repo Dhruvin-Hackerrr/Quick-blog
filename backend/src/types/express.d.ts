@@ -1,7 +1,7 @@
 import type { JwtPayload } from "jsonwebtoken";
 import type { User } from "../modules/auth/auth.types.ts";
 
-interface AuhtUser extends JwtPayload {
+export interface AuthUser extends JwtPayload {
   userId: string;
   firstName: string;
   lastName: string;
@@ -14,13 +14,13 @@ interface AuhtUser extends JwtPayload {
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-};
+}
 
 declare global {
   namespace Express {
     interface Request {
-      user?: AuhtUser;
-      accessToken?: string | JwtPayload;
+      user?: AuthUser;
+      accessToken?: string;
     }
   }
 }

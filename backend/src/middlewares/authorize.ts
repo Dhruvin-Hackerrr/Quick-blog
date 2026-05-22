@@ -1,9 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler.js";
 import logger from "../utils/logger.js";
 import { ApiError } from "../utils/ApiError.js";
+import type { UserRole } from "@prisma/client";
 
-export const authorize = (...allowedRoles: string[]) => {
+export const authorize = (...allowedRoles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user;
@@ -13,9 +13,9 @@ export const authorize = (...allowedRoles: string[]) => {
       }
 
       if (!allowedRoles.includes(req.user?.role)) {
-        throw new ApiError(403, "Forbidden");
+        throw new ApiError(403, "Forbidden, Only Authors access this services");
       }
-
+      
       next();
     } catch (error) {
       logger.error(`Error ${error}`);

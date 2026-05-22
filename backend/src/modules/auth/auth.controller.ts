@@ -4,13 +4,13 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 import logger from "../../utils/logger.js";
 import { authService } from "./index.js";
 import { ApiError } from "../../utils/ApiError.js";
-import { loginUserData, registerUserData } from "./auth.validations.js";
 import { comparePassword } from "../../utils/comparePassword.js";
 import {
   generateAccessToken,
   generateRefreshToken,
 } from "../../utils/generateTokens.js";
 import type { User } from "./auth.types.js";
+import { requireUser } from "../../utils/requireUser.js";
 
 const userSafe = (user: User) => {
   const {
@@ -29,18 +29,9 @@ export const registerUser = asyncHandler(
   async (req: Request, res: Response) => {
     logger.info("Register Controller is working");
 
-    const validateUser = registerUserData.safeParse(req.body);
-    if (!validateUser.success) {
-      const errors = validateUser.error.issues.map((err) => ({
-        field: err.path.join("."),
-        message: err.message,
-      }));
-      throw new ApiError(400, "Validation Failed", errors);
-    }
-
     const isExist = await authService.findUserByEmail(req.body.email as string);
     if (isExist) {
-      throw new ApiError(400, "User Already Exist");
+      throw new ApiError(409, "User Already Exist");
     }
 
     const user = await authService.userRegisterService(req.body);
@@ -55,14 +46,9 @@ export const registerUser = asyncHandler(
 export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   logger.info("Login Controller is working");
 
-  const validateUser = loginUserData.safeParse(req.body);
-  if (!validateUser.success) {
-    throw new ApiError(400, "Validation Error", validateUser.error.issues);
-  }
-
   const isExist = await authService.findUserByEmail(req.body.email);
   if (!isExist) {
-    throw new ApiError(400, "User do not exist, please register first");
+    throw new ApiError(404, "User do not exist, please register first");
   }
 
   const isPasswordValid = await comparePassword(
@@ -70,7 +56,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     isExist.passwordHash
   );
   if (!isPasswordValid) {
-    throw new ApiError(400, "Password was incorrect");
+    throw new ApiError(401, "Password was incorrect");
   }
 
   const accessToken = generateAccessToken(isExist.userId);
@@ -84,7 +70,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
   const user = await authService.userLoginService(rawData);
 
   if (!user.result) {
-    throw new ApiError(400, "User not found");
+    throw new ApiError(500, "Failed to login User");
   }
   const safeUser = userSafe(user.result);
 
@@ -104,26 +90,24 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
   logger.info("Log out controller is working");
   const accessToken = req.accessToken as string;
   const refreshToken = req.cookies.refreshToken;
+  requireUser(req)
+  const user = req.user
 
   if (!refreshToken) {
-    throw new ApiError(400, "Refresh Token was not found");
+    throw new ApiError(401, "Refresh Token was not found");
   }
-
-  if (!req.user?.userId) {
-    throw new ApiError(400, "Unauthorized");
-  }
-  const id = req.user?.userId;
+  const id = user.userId;
 
   await authService.blackListToken(accessToken, id);
   const deleteSession = await authService.removeSession(refreshToken);
-  if (!deleteSession) {
-    throw new ApiError(400, " Session was not found");
+  if (deleteSession.count === 0) {
+    logger.warn("Session already removed or expired")
   }
 
   return res
     .status(200)
     .clearCookie("refreshToken")
-    .json(new ApiResponse(200, "Hello", "User Logout succesfully!"));
+    .json(new ApiResponse(200, null, "User Logout succesfully!"));
 });
 
 export const reGenerateTokens = asyncHandler(
@@ -133,26 +117,26 @@ export const reGenerateTokens = asyncHandler(
     // get token from cookies
     const token = req.cookies.refreshToken;
     if (!token) {
-      throw new ApiError(400, "RefreshToken was not found");
+      throw new ApiError(401, "RefreshToken was not found");
     }
 
     // find authsession in db and check that tokens were valid or not expiores or not
     const session = await authService.findSessionByToken(token);
     if (!session) {
-      throw new ApiError(400, "Session was expired");
+      throw new ApiError(404, "Session was expired or not found");
     }
 
     // find user from details check if user was deleted or not also isActive or not
     const user = await authService.findUserById(session.userId);
     if (!user) {
-      throw new ApiError(400, "User was not Found");
+      throw new ApiError(404, "User was not Found");
     }
 
     // generate access and refresh token for user
     const accessToken = generateAccessToken(user.userId);
     const refreshToken = generateRefreshToken();
     if (!accessToken || !refreshToken) {
-      throw new ApiError(400, "Failed to generate Tokens");
+      throw new ApiError(500, "Failed to generate Tokens");
     }
 
     // update fields in authsession for user uppdate with new expiry and refresh token
@@ -163,7 +147,7 @@ export const reGenerateTokens = asyncHandler(
       session.id
     );
     if (updatedSession.count !== 1) {
-      throw new ApiError(400, "Error while update in Database");
+      throw new ApiError(500, "Error while update in Database");
     }
 
     // set header to add accessTokens
@@ -182,10 +166,9 @@ export const reGenerateTokens = asyncHandler(
 
 export const me = asyncHandler(async (req: Request, res: Response) => {
   logger.info("Fetch User Details Controller is working")
+  requireUser(req)
+
   const user = req.user
-  if(!user) {
-    throw new ApiError(400, "User not found")
-  }
 
   const safeUser = userSafe(user)
 
