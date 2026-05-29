@@ -1,6 +1,5 @@
 import { prisma } from "../../config/database.js";
 import { hashPassword, hashToken } from "../../utils/hash.utils.js";
-import logger from "../../utils/logger.js";
 import { REFRESH_TOKEN_EXPIRY } from "./auth.constants.js";
 import type { extendedLoginType, registerType } from "./auth.validations.js";
 
@@ -123,10 +122,11 @@ export const updateSession = async (
 //  ------------------------------------ BlacklistToken Table Queries -----------------------------------------
 
 export const blackListToken = async (token: string, id: string) => {
+  const hashedToken = hashToken(token)
   const result = await prisma.tokenBlacklist.create({
     data: {
       userId: id,
-      tokenHash: token,
+      tokenHash: hashedToken,
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     },
   });

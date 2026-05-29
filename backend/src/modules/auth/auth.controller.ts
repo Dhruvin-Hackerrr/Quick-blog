@@ -9,21 +9,8 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../../utils/generateTokens.js";
-import type { User } from "./auth.types.js";
 import { requireUser } from "../../utils/requireUser.js";
-
-const userSafe = (user: User) => {
-  const {
-    passwordHash,
-    isDeleted,
-    deletedAt,
-    createdAt,
-    updatedAt,
-    ...safeUser
-  } = user;
-
-  return safeUser;
-};
+import { REFRESH_TOKEN_EXPIRY, userSafe } from "./auth.constants.js";
 
 export const registerUser = asyncHandler(
   async (req: Request, res: Response) => {
@@ -35,6 +22,9 @@ export const registerUser = asyncHandler(
     }
 
     const user = await authService.userRegisterService(req.body);
+    if(!user) {
+      throw new ApiError(500, "User not Registered")
+    }
     const safeUser = userSafe(user);
 
     return res
@@ -79,7 +69,7 @@ export const loginUser = asyncHandler(async (req: Request, res: Response) => {
     .cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7,
+      maxAge: REFRESH_TOKEN_EXPIRY,
     })
     .json(
       new ApiResponse(200, { accessToken, safeUser }, "Login Successfully!")
@@ -90,8 +80,8 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
   logger.info("Log out controller is working");
   const accessToken = req.accessToken as string;
   const refreshToken = req.cookies.refreshToken;
-  requireUser(req)
-  const user = req.user
+  requireUser(req);
+  const user = req.user;
 
   if (!refreshToken) {
     throw new ApiError(401, "Refresh Token was not found");
@@ -101,7 +91,7 @@ export const logoutUser = asyncHandler(async (req: Request, res: Response) => {
   await authService.blackListToken(accessToken, id);
   const deleteSession = await authService.removeSession(refreshToken);
   if (deleteSession.count === 0) {
-    logger.warn("Session already removed or expired")
+    logger.warn("Session already removed or expired");
   }
 
   return res
@@ -150,9 +140,6 @@ export const reGenerateTokens = asyncHandler(
       throw new ApiError(500, "Error while update in Database");
     }
 
-    // set header to add accessTokens
-    res.setHeader("new-access-token", accessToken);
-
     return res
       .status(200)
       .cookie("refreshToken", refreshToken, {
@@ -165,20 +152,14 @@ export const reGenerateTokens = asyncHandler(
 );
 
 export const me = asyncHandler(async (req: Request, res: Response) => {
-  logger.info("Fetch User Details Controller is working")
-  requireUser(req)
+  logger.info("Fetch User Details Controller is working");
+  requireUser(req);
 
-  const user = req.user
+  const user = req.user;
 
-  const safeUser = userSafe(user)
+  const safeUser = userSafe(user);
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        safeUser,
-        "Fetch User Details Succesfully!"
-      )
-    );
+    .json(new ApiResponse(200, safeUser, "Fetch User Details Succesfully!"));
 });

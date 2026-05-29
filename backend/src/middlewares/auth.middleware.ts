@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import { authService } from "../modules/auth/index.js";
 import { hashToken } from "../utils/hash.utils.js";
 
-interface JwtPayloadWithId {
+export interface JwtPayloadWithId {
   id: string;
 }
 
@@ -53,8 +53,13 @@ export const isUserAuthenticated = asyncHandler(
 
       next();
     } catch (error) {
+      if(error instanceof ApiError) {
+        logger.error(error)
+        throw error
+      }
+      
       if (error instanceof jwt.TokenExpiredError) {
-        logger.info("Access token expired");
+        logger.error("Access token expired");
         throw new ApiError(401, "Access token expired");
       }
     

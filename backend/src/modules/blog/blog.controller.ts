@@ -5,28 +5,8 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { blogService } from "./index.js";
 import { requireUser } from "../../utils/requireUser.js";
-
-export const allBlogs = asyncHandler(async (req: Request, res: Response) => {
-  logger.info("Fetch All Blogs Controller is working");
-
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 5;
-
-  const getAllBlogs = await blogService.getAllBlogs(page, limit);
-  if (!getAllBlogs) {
-    throw new ApiError(500, "Failed to fetch blogs!");
-  }
-  const blogs = {
-    blogsData: getAllBlogs[0],
-    totalDocuments: getAllBlogs[1],
-    page,
-    limit,
-  };
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, blogs, "All Blogs fetched succesfully!"));
-});
+import { safeBlog } from "./blog.constants.js";
+import { Category } from "@prisma/client";
 
 export const fetchBlogById = asyncHandler(
   async (req: Request, res: Response) => {
@@ -36,16 +16,23 @@ export const fetchBlogById = asyncHandler(
       throw new ApiError(400, "ID was not found");
     }
 
-    const blog = await blogService.getBlogById(id as string, {
-      publishedOnly: true,
-    });
+    const blog = await blogService.getBlogById(id as string);
     if (!blog) {
       throw new ApiError(404, "Blog was not found");
     }
 
+    const isAuthor =
+      blog.isPublished || (req.user && req.user?.userId === blog.authorId);
+
+    if (!isAuthor) {
+      throw new ApiError(404, "Blog was not found");
+    }
+
+    const cleanBlog = safeBlog(blog);
+
     return res
       .status(200)
-      .json(new ApiResponse(200, blog, "Fetch blog succesfully!"));
+      .json(new ApiResponse(200, cleanBlog, "Fetch blog succesfully!"));
   }
 );
 
@@ -69,9 +56,11 @@ export const postBlog = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(500, "Failed to create Post");
   }
 
+  const cleanBlog = safeBlog(createPost);
+
   return res
     .status(201)
-    .json(new ApiResponse(201, createPost, "Blog created successfully"));
+    .json(new ApiResponse(201, cleanBlog, "Blog created successfully"));
 });
 
 export const updateBlog = asyncHandler(async (req: Request, res: Response) => {
@@ -99,7 +88,10 @@ export const updateBlog = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (req.body.slugDisplay) {
-    const isUnique = await blogService.checkUniqueSlug(req.body.slugDisplay, id as string);
+    const isUnique = await blogService.checkUniqueSlug(
+      req.body.slugDisplay,
+      id as string
+    );
     if (isUnique.result) {
       throw new ApiError(409, "Slug was taken try different slug");
     }
@@ -112,18 +104,20 @@ export const updateBlog = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(500, "Failed to update Blog in server");
   }
 
+  const cleanBlog = safeBlog(editedBlog);
+
   if (
     req.body.isPublished !== undefined &&
     Object.keys(req.body).length === 1
   ) {
     return res
       .status(200)
-      .json(new ApiResponse(200, editedBlog, "Blog's publishing was changed"));
+      .json(new ApiResponse(200, cleanBlog, "Blog's publishing was changed"));
   }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, editedBlog, "Blog Updated succesfully!"));
+    .json(new ApiResponse(200, cleanBlog, "Blog Updated succesfully!"));
 });
 
 export const removeBlog = asyncHandler(async (req: Request, res: Response) => {
@@ -132,7 +126,7 @@ export const removeBlog = asyncHandler(async (req: Request, res: Response) => {
 
   const { id } = req.params;
   if (!id) {
-    throw new ApiError(400, "Which Blog you want to delete");
+    throw new ApiError(400, "Blog Id is required");
   }
 
   const user = req.user;
@@ -143,7 +137,7 @@ export const removeBlog = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (fetchBlog.authorId !== user.userId) {
-    throw new ApiError(400, "Only Author of this Blog can delete this Blog");
+    throw new ApiError(403, "Only Author of this Blog can delete this Blog");
   }
 
   const deleteBlog = await blogService.deleteBlog(id as string);
@@ -153,26 +147,41 @@ export const removeBlog = asyncHandler(async (req: Request, res: Response) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, deleteBlog, "Blog Deleted Succesfully"));
+    .json(new ApiResponse(200, null, "Blog Deleted Succesfully"));
 });
 
 export const blogsOfAuthor = asyncHandler(
   async (req: Request, res: Response) => {
     logger.info("Get Blogs of Specific Author");
     requireUser(req);
-
     const user = req.user;
 
-    const allBlogsOfAuthor = await blogService.authorBlogs(user.userId);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 8;
+
+    const allBlogsOfAuthor = await blogService.authorBlogs(
+      user.userId,
+      page,
+      limit
+    );
+
+    const cleanBlogs = allBlogsOfAuthor[0].map((blog) => {
+      const cleaned = safeBlog(blog);
+      return cleaned;
+    });
+
+    const resposne = {
+      cleanBlogs,
+      page,
+      limit,
+      totalDocs: allBlogsOfAuthor[1],
+      Unpublished: allBlogsOfAuthor[2],
+    };
 
     return res
       .status(200)
       .json(
-        new ApiResponse(
-          200,
-          allBlogsOfAuthor,
-          "fetch all blogs of author succesfully"
-        )
+        new ApiResponse(200, resposne, "fetch all blogs of author succesfully")
       );
   }
 );
@@ -183,7 +192,7 @@ export const fetchAuthorBlogById = asyncHandler(
     requireUser(req);
     const { id } = req.params;
     if (!id) {
-      throw new ApiError(400, "ID was not provided of Blog");
+      throw new ApiError(400, "Blog Id is required");
     }
 
     const user = req.user;
@@ -192,11 +201,57 @@ export const fetchAuthorBlogById = asyncHandler(
       user.userId,
       id as string
     );
+    if (!getAuthorBlog) {
+      throw new ApiError(404, "Blog was not found");
+    }
+
+    const cleanBlog = safeBlog(getAuthorBlog);
 
     return res
       .status(200)
       .json(
-        new ApiResponse(200, getAuthorBlog, "Fetch Blog Details for Update it.")
+        new ApiResponse(200, cleanBlog, "Fetch Blog Details for Update it.")
       );
   }
 );
+
+export const filterBlogs = asyncHandler(async (req: Request, res: Response) => {
+  logger.info("Filter Blogs fetch controller is working");
+
+  const isCategory = (value: string): value is Category => {
+    return Object.values(Category).includes(value as Category);
+  };
+
+  const search =
+    typeof req.query.search === "string" ? req.query.search.trim() : undefined;
+  const rawCategory = req.query.category;
+
+  const category =
+    typeof rawCategory === "string" && isCategory(rawCategory.trim())
+      ? rawCategory.trim()
+      : undefined;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 5;
+
+  const response = await blogService.getFilterBlogs(
+    page,
+    limit,
+    search,
+    category
+  );
+  if(!response) {
+    throw new ApiError(500, "Blog was not found")
+  }
+
+  const cleanBlogs = response[0].map((blog) => {
+    const cleaned = safeBlog(blog)
+    return cleaned
+  })
+
+  const filteredBlogs = {
+    cleanBlogs,
+    totalDocs : response[1]
+  }
+
+  return res.status(200).json(new ApiResponse(200, filteredBlogs, "Success"));
+});

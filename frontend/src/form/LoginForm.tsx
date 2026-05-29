@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { showError, showSuccess } from "../utils/toast.js";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
-import type { loginFormData } from "../types/authtype.js";
+import { Role, type loginFormData } from "../types/authtype.js";
 
 export default function LoginForm() {
   const { setUser } = useAuth();
@@ -35,14 +35,14 @@ export default function LoginForm() {
 
       setAccessToken(res.accessToken);
       setUser(res.safeUser);
-
-      navigate("/dashboard");
+      
+      if(res.safeUser.role === Role.AUTHOR) return navigate("/dashboard")
+      navigate("/blogs");
     } catch (err) {
       const message =
         err?.response?.data?.message || err?.message || "Something went wrong";
 
       showError(message);
-      console.log("Login error:", err);
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ export default function LoginForm() {
           label={loading ? "Logging in..." : "Login"}
           type="submit"
           disabled={loading}
-          className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 transition-all duration-200"
+          className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 transition-all duration-200 cursor-pointer"
         />
       </div>
     </form>

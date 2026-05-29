@@ -1,17 +1,27 @@
 import { Route, Routes } from "react-router-dom";
 import Layout from "./layout/Layout";
 import NotFound from "./pages/NotFound";
-import HomePage from "./pages/Home";
+import HomePage from "./pages/HomePage";
 import { Toaster } from "react-hot-toast";
-import WriteBlogPage from "./pages/Blog/WriteBlog";
+import WriteBlogPage from "./pages/Blog/WriteBlogPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
-import BlogsPage from "./pages/Blog/Blogs";
-import SingleBlogPage from "./pages/Blog/SIngleBlogPage";
-import AuthorDashboard from "./pages/DashBoard";
+import AuthorDashboard from "./pages/AuthorDashboard";
 import AuthPage from "./pages/auth/AuthPage";
 import { Role } from "./types/authtype";
+import { useEffect } from "react";
+import { socket } from "./socket/socket";
+import SingleBlogPage from "./pages/Blog/SingleBlogPage";
+import BloglistPage from "./pages/Blog/BloglistPage";
 
 export default function App() {
+
+  useEffect(() => {
+    socket.connect()
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [])
   
   return (
     <div>
@@ -28,7 +38,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/blogs" element={<BlogsPage />} />
+          <Route path="/blogs" element={<BloglistPage />} />
           <Route path="/blog/:id" element={<SingleBlogPage />} />
           <Route
             path="/blog/publish"

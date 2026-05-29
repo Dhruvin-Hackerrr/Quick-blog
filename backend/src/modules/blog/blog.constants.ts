@@ -1,12 +1,8 @@
-export const commentSelect = {
-  commentId: true,
-  message: true,
-  postId: true,
-  user : {
-    select : {
-      firstName : true,
-      lastName : true
-    }
-  },
-  createdAt : true
+import type { BlogDocument } from "./blog.types.js";
+
+export const safeBlog = (blog: BlogDocument) => {
+  const { isDeleted, deletedAt, isEdited, editCount, slug, ...filterBlog } =
+    blog;
+
+  return filterBlog;
 };

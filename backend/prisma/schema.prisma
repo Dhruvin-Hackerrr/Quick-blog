@@ -84,6 +84,7 @@ model Post {
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
+  commentsCount Int @default(0)
   comments Comment[]
 }
 

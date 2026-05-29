@@ -48,7 +48,7 @@ export default function UnauthorizedPage() {
         <Button
           label="Browse Articles"
           className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition cursor-pointer mt-8"
-          onClick={() => navigate("/blog")}
+          onClick={() => navigate("/blogs")}
         />
 
         {/* Footer hint */}

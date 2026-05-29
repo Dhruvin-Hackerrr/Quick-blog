@@ -1,3 +1,4 @@
+import { UserRole } from "@prisma/client";
 import * as z from "zod";
 
 export const registerUserData = z
@@ -16,7 +17,7 @@ export const registerUserData = z
       .min(8, "Password must contain atleast 8 characters")
       .max(16, "Password must contain atmost 16 characters"),
     confirmPassword: z.string(),
-    role : z.enum(["AUTHOR", "READER"])
+    role : z.enum(UserRole)
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Password do not match",

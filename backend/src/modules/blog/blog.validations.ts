@@ -39,10 +39,10 @@ export const postBlogValidation = z.object({
   category: z.nativeEnum(Category),
 });
 
-export type postBlogData = z.infer<typeof postBlogValidation>;
-
 export const updateBlogValidation = postBlogValidation.partial().extend({
   isPublished: z.boolean().optional(),
 });
+
+export type postBlogData = z.infer<typeof postBlogValidation>;
 
 export type updateBlogData = z.infer<typeof updateBlogValidation>;

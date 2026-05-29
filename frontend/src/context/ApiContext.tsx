@@ -3,7 +3,8 @@ import { fetchUser, loginUser, logoutUser, registerUser } from "../api/auth";
 import { clearAccessToken, setAccessToken } from "../utils/localStorage";
 import { useNavigate } from "react-router-dom";
 import FullScreenLoader from "../components/ScreenLoader";
-import type { registerFormData } from "../types/authtype";
+import { Role, type registerFormData } from "../types/authtype";
+import { showError } from "../utils/toast";
 
 const AuthContext = createContext(null);
 
@@ -52,16 +53,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ).data.data;
         setAccessToken(user.accessToken);
         setUser(user.safeUser);
-        navigate("/")
+        
+        if (user.safeUser.role === Role.AUTHOR) return navigate("/dashboard")
+        navigate("/blogs")
       } catch (error) {
-        console.log(error);
+        showError(error)
       }
     },
     logout: async () => {
       try {
         await logoutUser();
-      } catch (err) {
-        console.log("Logout API failed, continuing cleanup", err);
+      } catch (error) {
+        showError(error)
       }
       clearAccessToken();
       setUser(null);

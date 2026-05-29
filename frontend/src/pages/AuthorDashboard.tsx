@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Eye, FileText, EyeOff, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/ApiContext";
 import { myBlogs, removeBlog, updateblog } from "../api/blog";
-// import FullScreenLoader from "../components/ScreenLoader";
 import Button from "../ui/Button";
 import { CategoryMeta } from "../../../shared/category";
 import { showError, showSuccess } from "../utils/toast";
@@ -12,20 +10,33 @@ import AuthorDashboardSkeleton from "../components/skeletons/AuthorDashboardSkel
 
 export default function AuthorDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [userBlogs, setUserBlogs] = useState<Array<blogType> | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+  const [page, setPage] = useState(1);
+  const [userBlogs, setUserBlogs] = useState<blogType[] | null>(null);
+  const [blogDetails, setBlogDetails] = useState({
+    totalPages: 1,
+    totalBlogs: 0,
+  });
+  const [unpublished, setUnpublished] = useState<number>(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchMyBlogs = useCallback(async () => {
     try {
-      const res = (await myBlogs()).data.data;
-      setUserBlogs(res);
-    } catch (error) {
-      console.log(error);
-    }
-  }, []);
+      const res = (await myBlogs(page)).data.data;
 
+      setUserBlogs(res.cleanBlogs);
+      setUnpublished(res.Unpublished);
+      setBlogDetails({
+        totalPages: Math.ceil(res.totalDocs / res.limit),
+        totalBlogs: res.totalDocs,
+      });
+    } catch (error) {
+      showError(error.message || "Failed to fetch blogs");
+    }
+  }, [page]);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     fetchMyBlogs();
   }, [fetchMyBlogs]);
@@ -34,13 +45,10 @@ export default function AuthorDashboard() {
     return <AuthorDashboardSkeleton />;
   }
 
-  const published = userBlogs.filter((b) => b.isPublished);
-  const drafts = userBlogs.filter((b) => !b.isPublished);
-
   const handleDelete = async (id: string) => {
     try {
       await removeBlog(id);
-      setUserBlogs((prev) => prev.filter((b) => b.postId !== id));
+      fetchMyBlogs();
       showSuccess("Blog Deleted Succusfully");
     } catch (error) {
       showError(error.message);
@@ -56,44 +64,36 @@ export default function AuthorDashboard() {
     }
   };
 
+  const visiblePages = Array.from(
+    { length: blogDetails.totalPages },
+    (_, i) => i + 1
+  ).filter(
+    (p) => p === 1 || p === blogDetails.totalPages || Math.abs(p - page) <= 1
+  );
+
   return (
     <div className="h-screen bg-(--bg) flex p-10 text-(--text) overflow-hidden">
       {/* ================= MAIN ================= */}
-      <div className="flex-1 p-8">
-        {/* HEADER */}
-
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-[#111827] via-[#0f172a] to-[#1e293b] p-6 mb-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.15),transparent_30%)]" />
-
-          <div className="relative flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">
-                Welcome back, {user.firstName} 👋
-              </h1>
-
-              <p className="text-gray-400 mt-2 max-w-xl">
-                Track your blog growth, manage content, and publish new stories.
-              </p>
-            </div>
-
-            <Button
-              onClick={() => navigate("/blog/publish")}
-              className="h-12 px-5 rounded-xl bg-blue-600 hover:bg-(--primary) shadow-lg shadow-blue-500/20 flex justify-center items-center cursor-pointer"
-            >
-              <Plus size={18} className="mr-2" />
-              New Post
-            </Button>
-          </div>
-        </div>
-
+      <div className="flex-1 p-8 flex flex-col">
         {/* ================= STATS ================= */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {[
-            { label: "Total Blogs", value: userBlogs.length, icon: FileText },
-            { label: "Published", value: published.length, icon: Eye },
-            { label: "Not Published", value: drafts.length, icon: EyeOff },
+            {
+              label: "Total Blogs",
+              value: blogDetails.totalBlogs,
+              icon: FileText,
+            },
+            {
+              label: "Published",
+              value: blogDetails.totalBlogs - unpublished,
+              icon: Eye,
+            },
+            { label: "Drafts", value: unpublished, icon: EyeOff },
           ].map((item) => (
-            <div className="bg-(--bg) border border-(--border) rounded-xl p-5">
+            <div
+              key={item.label}
+              className="bg-(--surface) border border-(--border) rounded-xl p-5"
+            >
               <div className="flex items-center gap-2 text-gray-400 text-sm">
                 <item.icon size={16} />
                 {item.label}
@@ -104,9 +104,9 @@ export default function AuthorDashboard() {
         </div>
 
         {/* ================= POSTS ================= */}
-        <div className="lg:col-span-8 bg-(--surface) border border-(--border) rounded-(--radius) overflow-hidden">
+        <div className="lg:col-span-8 flex flex-1 flex-col bg-(--surface) border border-(--border) rounded-(--radius) overflow-hidden">
           {/* ================= TOP HEADER ================= */}
-          <div className="p-4 flex justify-between items-center border-b border-(--border) bg-(--surface)">
+          <div className="p-4 flex justify-between items-center border-b border-(--border)">
             <h2 className="text-xl">Your Posts</h2>
             <span className="text-xs text-(--muted)">
               {userBlogs.length} articles
@@ -114,33 +114,19 @@ export default function AuthorDashboard() {
           </div>
 
           {/* ================= SCROLL WRAPPER ================= */}
-          <div className="max-h-125 overflow-x-scroll modern-scrollbar">
+          <div className="flex-1">
             {userBlogs.length !== 0 ? (
               <table className="w-full text-left border-separate border-spacing-0">
                 {/* ================= TABLE HEADER ================= */}
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-(--bg) border-b border-(--border) ">
-                    <th className="px-4 py-5 text-xl text-(--muted) bg-(--bg)">
-                      No.
-                    </th>
-                    <th className="px-4 py-5 text-xl text-(--muted) bg-(--bg)">
-                      Title
-                    </th>
-                    <th className="px-4 py-5 text-base text-(--muted) bg-(--bg)">
-                      Category
-                    </th>
-                    <th className="px-4 py-5 text-base text-(--muted) bg-(--bg)">
-                      Created On
-                    </th>
-                    <th className="px-4 py-5 text-base text-(--muted) bg-(--bg)">
-                      Last Updated
-                    </th>
-                    <th className="px-5 py-5 text-base text-(--muted) bg-(--bg) w-35">
-                      Status
-                    </th>
-                    <th className="px-4 py-5 text-base text-(--muted) bg-(--bg) text-center">
-                      Actions
-                    </th>
+                    <th className="px-4 py-5">No.</th>
+                    <th className="px-4 py-5">Title</th>
+                    <th className="px-4 py-5">Category</th>
+                    <th className="px-4 py-5">Created On</th>
+                    <th className="px-4 py-5">Last Updated</th>
+                    <th className="px-4 py-5">Status</th>
+                    <th className="px-4 py-5 text-center">Actions</th>
                   </tr>
                 </thead>
 
@@ -153,10 +139,11 @@ export default function AuthorDashboard() {
                     return (
                       <tr
                         key={blog.postId}
-                        className="group border-b border-(--border) hover:bg-[#0f172a] transition"
+                        onClick={() => navigate(`/blog/${blog.postId}`)}
+                        className="group border-b border-(--border) hover:bg-(--surface-hover) transition cursor-pointer"
                       >
                         <td className="px-4 py-5 pl-5 text-sm flex justify-start">
-                          {index + 1}
+                          {(page - 1) * 8 + index + 1}
                         </td>
 
                         <td className="px-4 py-5 text-sm font-medium">
@@ -201,12 +188,16 @@ export default function AuthorDashboard() {
 
                         <td className="px-4 py-5 text-right align-middle w-28">
                           <div className="flex items-center justify-end">
-                            <div className="flex items-center gap-2 opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                            <div className="flex items-center gap-2">
                               <div className="relative group/tooltip">
                                 <Button
-                                  onClick={() =>
-                                    handlePublish(blog.postId, blog.isPublished)
-                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePublish(
+                                      blog.postId,
+                                      blog.isPublished
+                                    );
+                                  }}
                                   className={`h-8 w-8 flex items-center justify-center rounded-lg transition text-(--muted) cursor-pointer
                                           ${
                                             blog.isPublished
@@ -228,11 +219,12 @@ export default function AuthorDashboard() {
                               {/* EDIT */}
                               <div className="relative group/edit">
                                 <Button
-                                  onClick={() =>
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     navigate(`/blog/publish/${blog.postId}`, {
                                       state: { from: location.pathname },
-                                    })
-                                  }
+                                    });
+                                  }}
                                   className="h-8 w-8 flex items-center justify-center rounded-lg text-(--muted) hover:text-blue-500 hover:bg-blue-500/10 transition cursor-pointer"
                                 >
                                   <Pencil size={16} />
@@ -245,7 +237,8 @@ export default function AuthorDashboard() {
                               {/* DELETE */}
                               <div className="relative group/delete">
                                 <Button
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setIsModalOpen(true);
                                     setDeleteId(blog.postId);
                                   }}
@@ -283,7 +276,7 @@ export default function AuthorDashboard() {
 
                 {/* HEADING */}
                 <h2 className="text-2xl font-semibold mb-3">
-                  No posts created yet
+                  No posts published yet
                 </h2>
 
                 {/* DESCRIPTION */}
@@ -299,11 +292,77 @@ export default function AuthorDashboard() {
                   className="h-11 px-5 rounded-xl bg-blue-600 hover:bg-(--primary) shadow-lg shadow-blue-500/20 flex items-center gap-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
                 >
                   <Plus size={18} />
-                  Create Your First Post
+                  Published Your First Post
                 </Button>
               </div>
             )}
           </div>
+
+          {userBlogs.length !== 0 && (
+            <div className="border-t border-(--border) px-4 py-4 flex justify-center gap-2 bg-(--surface)">
+            <Button
+                label="Prev"
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page === 1}
+                className="
+                  px-3 py-2
+                  rounded-md
+                  border border-(--border)
+                  text-sm
+                  disabled:opacity-40
+                  cursor-pointer
+                "
+              />
+  
+              {/* Pages */}
+              {visiblePages.map((pageNumber, index) => {
+                const prev = visiblePages[index - 1];
+  
+                return (
+                  <div key={pageNumber} className="flex items-center gap-2">
+                    {/* Dots */}
+                    {prev && pageNumber - prev > 1 && (
+                      <span className="text-(--muted)">...</span>
+                    )}
+  
+                    <Button
+                      label={pageNumber.toString()}
+                      onClick={() => setPage(pageNumber)}
+                      className={`
+                        min-w-10
+                        px-3 py-2
+                        rounded-md
+                        text-sm
+                        border
+                        transition
+                        cursor-pointer
+                        ${
+                          page === pageNumber
+                            ? "bg-(--primary) text-white border-(--primary)"
+                            : "border-(--border) hover:bg-white/5"
+                        }
+                      `}
+                    />
+                  </div>
+                );
+              })}
+  
+              {/* Next */}
+              <Button
+                label="Next"
+                onClick={() => setPage((p) => Math.min(p + 1, blogDetails.totalPages))}
+                disabled={page === blogDetails.totalPages}
+                className="
+                  px-3 py-2
+                  rounded-md
+                  border border-(--border)
+                  text-sm
+                  disabled:opacity-40
+                  cursor-pointer
+                "
+              />
+            </div>
+          )}
         </div>
       </div>
 

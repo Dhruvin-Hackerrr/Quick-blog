@@ -3,6 +3,7 @@ import Button from "../../ui/Button";
 import RegisterForm from "../../form/RegisterForm";
 import LoginForm from "../../form/LoginForm";
 import { useAuth } from "../../context/ApiContext";
+import Home_img from "../../assets/Home_img.jpeg"
 
 export default function AuthPage() {
   const [isRegister, setIsRegister] = useState<boolean>(false);
@@ -16,7 +17,7 @@ export default function AuthPage() {
           {isAuthenticated ? (
             <>
               <img
-                src="https://images.pexels.com/photos/839443/pexels-photo-839443.jpeg"
+                src={Home_img}
                 alt="Blog Photo"
                 className="rounded-4xl"
               />

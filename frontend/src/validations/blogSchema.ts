@@ -42,6 +42,3 @@ export const publishBlogValidation = z.object({
 export const updateBlogValidation = publishBlogValidation.partial().extend({
   isPublished: z.boolean().optional(),
 });
-
-
-

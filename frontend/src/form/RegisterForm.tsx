@@ -43,7 +43,6 @@ export default function RegisterForm() {
         err?.response?.data?.message || err?.message || "Something went wrong";
 
       showError(message);
-      console.log("Register error:", err);
     } finally {
       setLoading(false);
     }
@@ -127,7 +126,7 @@ export default function RegisterForm() {
         <label className="block mb-2 text-sm font-semibold text-gray-300">
           Select Role
         </label>
-        <div className="relative">
+        <div className="relative bg-(--surface)">
           <Shield
             className="fa-solid fa-briefcase absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             size={18}
@@ -137,7 +136,7 @@ export default function RegisterForm() {
             id="role"
             name="role"
             disabled={loading}
-            className="w-full h-12 rounded-xl bg-[#0d1117] border border-white/10 px-10 text-gray-300 appearance-none"
+            className="w-full h-12 rounded-md border border-(--border) px-10 text-gray-300 appearance-none outline-none focus:border-(--primary) cursor-pointer"
             {...register("role")}
           >
             <option value={Role.AUTHOR}>Author</option>
