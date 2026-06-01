@@ -21,6 +21,14 @@ export const findUserById = async (id: string) => {
   return result;
 };
 
+export const findDeletedAcc = async (email: string) => {
+  const result = await prisma.user.findFirst({
+    where: { email: email },
+  });
+
+  return result
+};
+
 export const userRegisterService = async (data: registerType) => {
   const hashedPassword = await hashPassword(data.password);
   const result = await prisma.user.create({
@@ -122,7 +130,7 @@ export const updateSession = async (
 //  ------------------------------------ BlacklistToken Table Queries -----------------------------------------
 
 export const blackListToken = async (token: string, id: string) => {
-  const hashedToken = hashToken(token)
+  const hashedToken = hashToken(token);
   const result = await prisma.tokenBlacklist.create({
     data: {
       userId: id,

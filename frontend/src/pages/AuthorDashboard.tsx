@@ -143,7 +143,7 @@ export default function AuthorDashboard() {
                         className="group border-b border-(--border) hover:bg-(--surface-hover) transition cursor-pointer"
                       >
                         <td className="px-4 py-5 pl-5 text-sm flex justify-start">
-                          {(page - 1) * 8 + index + 1}
+                          {(page - 1) * 7 + index + 1}
                         </td>
 
                         <td className="px-4 py-5 text-sm font-medium">

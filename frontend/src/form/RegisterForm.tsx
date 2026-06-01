@@ -1,8 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  registerSchema
-} from "../validations/authSchema";
+import { registerSchema } from "../validations/authSchema";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import { useAuth } from "../context/ApiContext";
@@ -18,11 +16,15 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Role, type registerFormData } from "../types/authtype";
+import { loginUser, registerUser } from "../api/auth";
+import { setAccessToken } from "../utils/localStorage";
+import { useNavigate } from "react-router-dom";
 
 export default function RegisterForm() {
-  const { userRegister } = useAuth();
+  const { setUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   const {
     register,
@@ -34,10 +36,17 @@ export default function RegisterForm() {
 
   const onSubmit = async (data: registerFormData) => {
     setLoading(true);
-
     try {
-      await userRegister(data);
+      await registerUser(data);
+      const user = (
+        await loginUser({ email: data.email, password: data.password })
+      ).data.data;
+      setAccessToken(user.accessToken);
+      setUser(user.safeUser);
+
       showSuccess("User Register Successfully!");
+      if (user.safeUser.role === Role.AUTHOR) return navigate("/dashboard");
+      navigate("/blogs");
     } catch (err) {
       const message =
         err?.response?.data?.message || err?.message || "Something went wrong";

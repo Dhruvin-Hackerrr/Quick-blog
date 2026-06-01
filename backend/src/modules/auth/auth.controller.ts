@@ -21,6 +21,11 @@ export const registerUser = asyncHandler(
       throw new ApiError(409, "User Already Exist");
     }
 
+    const isDeactived = await authService.findDeletedAcc(req.body.email as string)
+    if(isDeactived) {
+      throw new ApiError(400, "This account was deleted or not activate")
+    }
+
     const user = await authService.userRegisterService(req.body);
     if(!user) {
       throw new ApiError(500, "User not Registered")

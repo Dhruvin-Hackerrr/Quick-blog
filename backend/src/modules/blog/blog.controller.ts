@@ -157,7 +157,7 @@ export const blogsOfAuthor = asyncHandler(
     const user = req.user;
 
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 8;
+    const limit = parseInt(req.query.limit as string) || 7;
 
     const allBlogsOfAuthor = await blogService.authorBlogs(
       user.userId,

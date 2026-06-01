@@ -1,9 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { fetchUser, loginUser, logoutUser, registerUser } from "../api/auth";
-import { clearAccessToken, setAccessToken } from "../utils/localStorage";
+import { fetchUser, logoutUser } from "../api/auth";
+import { clearAccessToken } from "../utils/localStorage";
 import { useNavigate } from "react-router-dom";
 import FullScreenLoader from "../components/ScreenLoader";
-import { Role, type registerFormData } from "../types/authtype";
 import { showError } from "../utils/toast";
 
 const AuthContext = createContext(null);
@@ -45,21 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     role: user?.role ?? null,
     isAuthenticated: !!user,
     loading,
-    userRegister: async (data : registerFormData) => {
-      try {
-        await registerUser(data);
-        const user = (
-          await loginUser({ email: data.email, password: data.password })
-        ).data.data;
-        setAccessToken(user.accessToken);
-        setUser(user.safeUser);
-        
-        if (user.safeUser.role === Role.AUTHOR) return navigate("/dashboard")
-        navigate("/blogs")
-      } catch (error) {
-        showError(error)
-      }
-    },
     logout: async () => {
       try {
         await logoutUser();
