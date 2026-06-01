@@ -3,7 +3,7 @@ import type {
   publishBlogValidation,
   updateBlogValidation,
 } from "../validations/blogSchema";
-import type { CategoryType } from "../../../shared/category";
+import type { CategoryMeta } from "../../../shared/category";
 
 export type publishBlogData = z.infer<typeof publishBlogValidation>;
 export type updateBlogData = z.infer<typeof updateBlogValidation>;
@@ -11,7 +11,7 @@ export type updateBlogData = z.infer<typeof updateBlogValidation>;
 export type blogType = publishBlogData & {
   postId: string;
   authorId: string;
-  category: CategoryType;
+  category : keyof typeof CategoryMeta;
   createdAt: Date;
   deletedAt: Date;
   editCount: number;
@@ -20,4 +20,8 @@ export type blogType = publishBlogData & {
   isPublished: boolean;
   updatedAt: Date;
   commentsCount: number;
+  author: {
+    firstName : string,
+    lastName : string
+  }
 };

@@ -7,6 +7,7 @@ import {
   Menu,
   LogOut,
   LogIn,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../context/ApiContext";
 import Button from "../ui/Button";
@@ -14,7 +15,20 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { showError } from "../utils/toast";
 import { Role } from "../types/authtype";
 
-export default function Sidebar({ mobileOpen, setMobileOpen }) {
+type MenuItem = {
+  name: string;
+  icon: LucideIcon;
+  path: string;
+  requiresAuth?: boolean;
+};
+
+export default function Sidebar({
+  mobileOpen,
+  setMobileOpen,
+}: {
+  mobileOpen: boolean;
+  setMobileOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const [collapsed, setCollapsed] = useState(false);
 
   const { isAuthenticated, user, logout, loading, role } = useAuth();
@@ -32,8 +46,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
   const menu = [
     ...(role === Role.AUTHOR
       ? [{ name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" }]
-      : []),
-    { name: "Home", icon: House, path: "/" },
+      : [{ name: "Home", icon: House, path: "/" }]),
     {
       name: "Write",
       icon: PenSquare,
@@ -43,7 +56,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
     { name: "Articles", icon: FileText, path: "/blogs" },
   ];
 
-  const handleNav = (item) => {
+  const handleNav = (item: MenuItem) => {
     if (item.requiresAuth && !isAuthenticated) {
       navigate("/login");
       showError("Please Login to continue");
@@ -170,7 +183,9 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
               </div>
 
               <div className="text-xs">
-                <p>{user?.firstName} {user?.lastName}</p>
+                <p>
+                  {user?.firstName} {user?.lastName}
+                </p>
                 <p className="text-gray-400">{user?.email}</p>
               </div>
             </div>

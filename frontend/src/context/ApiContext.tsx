@@ -4,12 +4,23 @@ import { clearAccessToken } from "../utils/localStorage";
 import { useNavigate } from "react-router-dom";
 import FullScreenLoader from "../components/ScreenLoader";
 import { showError } from "../utils/toast";
+import type { Role, User } from "../types/authtype";
+import { getErrorMessage } from "../utils/getErrorMessage";
 
-const AuthContext = createContext(null);
+type AuthContextType = {
+  user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  role: Role | null;
+  isAuthenticated: boolean;
+  loading: boolean;
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         await logoutUser();
       } catch (error) {
-        showError(error)
+        showError(getErrorMessage(error))
       }
       clearAccessToken();
       setUser(null);

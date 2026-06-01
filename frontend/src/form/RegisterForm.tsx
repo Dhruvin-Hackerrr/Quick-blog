@@ -19,6 +19,7 @@ import { Role, type registerFormData } from "../types/authtype";
 import { loginUser, registerUser } from "../api/auth";
 import { setAccessToken } from "../utils/localStorage";
 import { useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../utils/getErrorMessage";
 
 export default function RegisterForm() {
   const { setUser } = useAuth();
@@ -48,10 +49,7 @@ export default function RegisterForm() {
       if (user.safeUser.role === Role.AUTHOR) return navigate("/dashboard");
       navigate("/blogs");
     } catch (err) {
-      const message =
-        err?.response?.data?.message || err?.message || "Something went wrong";
-
-      showError(message);
+      showError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -143,7 +141,6 @@ export default function RegisterForm() {
 
           <select
             id="role"
-            name="role"
             disabled={loading}
             className="w-full h-12 rounded-md border border-(--border) px-10 text-gray-300 appearance-none outline-none focus:border-(--primary) cursor-pointer"
             {...register("role")}

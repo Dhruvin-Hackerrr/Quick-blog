@@ -1,7 +1,7 @@
 import type { publishBlogData, updateBlogData } from "../types/blogtype";
 import { api } from "./axios";
 
-export const fetchFilteredBlog = (page : number,search, category) => api.get(`/blog?search=${search}&category=${category}&page=${page}`)
+export const fetchFilteredBlog = (page : number,search : string, category: string) => api.get(`/blog?search=${search}&category=${category}&page=${page}`)
 
 export const fetchBlogById = (id: string) => api.get(`/blog/${id}`);
 

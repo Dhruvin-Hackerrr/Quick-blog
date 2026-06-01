@@ -17,14 +17,16 @@ import FullScreenLoader from "../../components/ScreenLoader";
 import Footer from "../../layout/Footer";
 import { showError } from "../../utils/toast";
 import Input from "../../ui/Input";
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import type { blogType } from "../../types/blogtype";
 
 export default function BloglistPage() {
   const [search, setSearch] = useState<string>("");
-  const [blogs, setBlogs] = useState(null);
+  const [blogs, setBlogs] = useState<blogType[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [openDrower, setOpenDrower] = useState<boolean>(false);
-  const [category, setCategory] = useState<string>("");
+  const [category, setCategory] = useState<keyof typeof CategoryMeta | "">("");
   const limit = 5;
   const navigate = useNavigate();
 
@@ -35,7 +37,7 @@ export default function BloglistPage() {
         setBlogs(res.cleanBlogs);
         setTotalPages(Math.ceil(res.totalDocs / limit));
       } catch (error) {
-        showError(error);
+        showError(getErrorMessage(error));
       }
     };
     filtered();

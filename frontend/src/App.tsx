@@ -10,8 +10,8 @@ import AuthPage from "./pages/auth/AuthPage";
 import { Role } from "./types/authtype";
 import { useEffect } from "react";
 import { socket } from "./socket/socket";
-import SingleBlogPage from "./pages/Blog/SingleBlogPage";
 import BloglistPage from "./pages/Blog/BloglistPage";
+import SingleBlogPage from "./pages/Blog/SingleBlogPage";
 
 export default function App() {
 

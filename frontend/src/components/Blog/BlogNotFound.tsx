@@ -2,7 +2,7 @@ import { FileSearch, ArrowLeft } from "lucide-react";
 import Button from "../../ui/Button";
 import { useNavigate } from "react-router-dom";
 
-export default function BlogNotFound({ error }) {
+export default function BlogNotFound({ error } : {error?: string}) {
   const navigate = useNavigate();
 
   return (

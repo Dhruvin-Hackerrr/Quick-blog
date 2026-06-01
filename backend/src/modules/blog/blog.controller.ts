@@ -237,7 +237,7 @@ export const filterBlogs = asyncHandler(async (req: Request, res: Response) => {
     page,
     limit,
     search,
-    category
+    category as Category
   );
   if(!response) {
     throw new ApiError(500, "Blog was not found")

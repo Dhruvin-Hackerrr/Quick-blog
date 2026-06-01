@@ -7,6 +7,7 @@ import { CategoryMeta } from "../../../shared/category";
 import { showError, showSuccess } from "../utils/toast";
 import type { blogType } from "../types/blogtype";
 import AuthorDashboardSkeleton from "../components/skeletons/AuthorDashboardSkeleton";
+import { getErrorMessage } from "../utils/getErrorMessage";
 
 export default function AuthorDashboard() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function AuthorDashboard() {
         totalBlogs: res.totalDocs,
       });
     } catch (error) {
-      showError(error.message || "Failed to fetch blogs");
+      showError(getErrorMessage(error));
     }
   }, [page]);
 
@@ -51,7 +52,7 @@ export default function AuthorDashboard() {
       fetchMyBlogs();
       showSuccess("Blog Deleted Succusfully");
     } catch (error) {
-      showError(error.message);
+      showError(getErrorMessage(error));
     }
   };
 
@@ -60,7 +61,7 @@ export default function AuthorDashboard() {
       await updateblog({ isPublished: !status }, id);
       fetchMyBlogs();
     } catch (error) {
-      showError(error.message);
+      showError(getErrorMessage(error));
     }
   };
 
@@ -174,7 +175,7 @@ export default function AuthorDashboard() {
                           ).toLocaleDateString()}
                         </td>
 
-                        <td className="px-4 py-5 text-sm">
+                        <td className="px-4 py-5 text-sm w-40">
                           <span
                             className={`px-2 py-1 rounded-md text-xs font-medium ${
                               blog.isPublished
@@ -300,7 +301,7 @@ export default function AuthorDashboard() {
 
           {userBlogs.length !== 0 && (
             <div className="border-t border-(--border) px-4 py-4 flex justify-center gap-2 bg-(--surface)">
-            <Button
+              <Button
                 label="Prev"
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
                 disabled={page === 1}
@@ -313,18 +314,18 @@ export default function AuthorDashboard() {
                   cursor-pointer
                 "
               />
-  
+
               {/* Pages */}
               {visiblePages.map((pageNumber, index) => {
                 const prev = visiblePages[index - 1];
-  
+
                 return (
                   <div key={pageNumber} className="flex items-center gap-2">
                     {/* Dots */}
                     {prev && pageNumber - prev > 1 && (
                       <span className="text-(--muted)">...</span>
                     )}
-  
+
                     <Button
                       label={pageNumber.toString()}
                       onClick={() => setPage(pageNumber)}
@@ -346,11 +347,13 @@ export default function AuthorDashboard() {
                   </div>
                 );
               })}
-  
+
               {/* Next */}
               <Button
                 label="Next"
-                onClick={() => setPage((p) => Math.min(p + 1, blogDetails.totalPages))}
+                onClick={() =>
+                  setPage((p) => Math.min(p + 1, blogDetails.totalPages))
+                }
                 disabled={page === blogDetails.totalPages}
                 className="
                   px-3 py-2
@@ -398,6 +401,7 @@ export default function AuthorDashboard() {
 
               <Button
                 onClick={() => {
+                  if (!deleteId) return;
                   handleDelete(deleteId);
                   setIsModalOpen(false);
                   setDeleteId(null);

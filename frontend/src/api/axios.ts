@@ -1,14 +1,20 @@
-import axios from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
 import {
   clearAccessToken,
   getAccesToken,
   setAccessToken,
 } from "../utils/localStorage";
 
+type FailedRequest = {
+  resolve: (value: unknown) => void;
+  reject: (reason?: unknown) => void;
+  originalRequest: AxiosRequestConfig;
+};
+
 const BASE_URL = "http://localhost:5000/api/v1";
 
 let isRefreshing = false;
-let failedQueue = [];
+let failedQueue : FailedRequest[] = [];
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -62,9 +68,10 @@ api.interceptors.response.use(
         setAccessToken(newAccessToken);
 
         failedQueue.forEach((req) => {
-          req.originalRequest.headers[
-            "Authorization"
-          ] = `Bearer ${newAccessToken}`;
+          req.originalRequest.headers = {
+            ...req.originalRequest.headers,
+            Authorization: `Bearer ${newAccessToken}`,
+          };
           req.resolve(api(req.originalRequest));
         });
 

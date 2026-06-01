@@ -25,8 +25,8 @@ export default function CategorySelect({
       >
         <span className="flex items-center gap-2">
           {(() => {
-            const Icon = CategoryMeta[value].icon;
-            const iconColor = CategoryMeta[value].color;
+            const Icon = CategoryMeta[value as keyof typeof CategoryMeta].icon;
+            const iconColor = CategoryMeta[value as keyof typeof CategoryMeta].color;
             return <Icon size={16} style={{ color: iconColor }} />;
           })()}
           {value.replaceAll("_", " ")}

@@ -1,9 +1,11 @@
-export function extractText(node): string {
+import type { EditorNode } from "../validations/blogSchema";
+
+export function extractText(node : EditorNode): string {
     if (!node) return "";
   
     let text = "";
   
-    function traverse(n) {
+    function traverse(n : EditorNode) {
       if (n.type === "text") {
         text += n.text + " ";
       }

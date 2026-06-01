@@ -1,11 +1,11 @@
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useEffect } from "react";
 import Placeholder from "@tiptap/extension-placeholder";
 
 interface BlogEditorProps {
-  value;
-  onChange: (value) => void;
+  value : JSONContent;
+  onChange: (value : JSONContent) => void;
   disabled?: boolean;
 }
 

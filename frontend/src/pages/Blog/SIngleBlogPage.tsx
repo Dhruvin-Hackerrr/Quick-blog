@@ -13,20 +13,27 @@ import { getComment } from "../../api/comment";
 import Button from "../../ui/Button";
 import { socket } from "../../socket/socket";
 import type { comment, commentResponse } from "../../types/commenttype";
+import { getErrorMessage } from "../../utils/getErrorMessage";
+import type { blogType } from "../../types/blogtype";
 
 export default function SingleBlogPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [content, setContent] = useState(null);
+  const [content, setContent] = useState<blogType | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [comments, setComments] = useState([]);
+  const [comments, setComments] = useState<commentResponse>([]);
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchComments = async () => {
       try {
+        if(!id) {
+          setError("Blog ID is missing")
+          return
+        }
+
         const res = (await getComment(id, page)).data.data;
 
         setComments((prev: commentResponse) => {
@@ -41,7 +48,7 @@ export default function SingleBlogPage() {
 
         setHasMore(res.hasMore);
       } catch (error) {
-        setError(error?.message || "Something went wrong");
+        setError(getErrorMessage(error));
       }
     };
 
@@ -51,11 +58,16 @@ export default function SingleBlogPage() {
   useEffect(() => {
     const fetchOneBlog = async () => {
       try {
+        if(!id) {
+          setError("Blog ID is missing")
+          return
+        }
+
         const res = (await fetchBlogById(id)).data.data;
 
         setContent(res);
       } catch (error) {
-        setError(error?.message || "Something went wrong");
+        setError(getErrorMessage(error));
       }
     };
 
@@ -67,7 +79,7 @@ export default function SingleBlogPage() {
 
     socket.emit("post:join", id);
 
-    const handleJoin = (data) => console.log(data);
+    const handleJoin = (data : string) => console.log(data);
 
     socket.on("joined", handleJoin);
 
@@ -79,7 +91,7 @@ export default function SingleBlogPage() {
   useEffect(() => {
     if (!socket) return;
 
-    const handler = (data) => {
+    const handler = (data : comment) => {
       setComments((prev) => {
         const exists = prev.some((c) => c.commentId === data.commentId);
 

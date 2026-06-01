@@ -1,6 +1,6 @@
 type ButtonProps = {
   label?: string;
-  onClick?: (e? : React.MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (e : React.MouseEvent<HTMLButtonElement>) => void;
   variant?: "primary" | "danger";
   className?: string;
   disabled?: boolean;

@@ -6,6 +6,7 @@ import { useAuth } from "../context/ApiContext";
 import { showError } from "../utils/toast";
 import { commentSchema } from "../validations/commentSchema";
 import { postComment } from "../api/comment";
+import { getErrorMessage } from "../utils/getErrorMessage";
 
 type Props = {
   postId : string
@@ -39,8 +40,8 @@ export default function CommentForm({ postId } : Props) {
       await postComment(commentValue)
       
       reset()
-    } catch (err) {
-      showError(err.message);
+    } catch (error) {
+      showError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }

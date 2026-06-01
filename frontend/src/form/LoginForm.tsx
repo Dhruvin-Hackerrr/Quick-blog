@@ -11,6 +11,7 @@ import { useState } from "react";
 import { showError, showSuccess } from "../utils/toast.js";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
 import { Role, type loginFormData } from "../types/authtype.js";
+import { getErrorMessage } from "../utils/getErrorMessage.js";
 
 export default function LoginForm() {
   const { setUser } = useAuth();
@@ -39,10 +40,7 @@ export default function LoginForm() {
       if(res.safeUser.role === Role.AUTHOR) return navigate("/dashboard")
       navigate("/blogs");
     } catch (err) {
-      const message =
-        err?.response?.data?.message || err?.message || "Something went wrong";
-
-      showError(message);
+      showError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

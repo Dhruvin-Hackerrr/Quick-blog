@@ -1,6 +1,12 @@
 import z from "zod";
 import { Category} from "../../../shared/category";
 
+export type EditorNode = {
+  type: string;
+  text?: string;
+  content?: EditorNode[];
+};
+
 export const publishBlogValidation = z.object({
   title: z
     .string()
@@ -20,7 +26,7 @@ export const publishBlogValidation = z.object({
     (value) => {
       // Flatten all text nodes
       const text = value?.content
-        ?.map((node) =>
+        ?.map((node : EditorNode) =>
           node?.content?.map((child) => child?.text || "").join("")
         )
         .join("")

@@ -1,7 +1,11 @@
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 
-export default function BlogView({ content }) {
+type BlogviewProps = {
+  content : JSONContent
+}
+
+export default function BlogView({ content } : BlogviewProps) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: content, // MUST be JSON object

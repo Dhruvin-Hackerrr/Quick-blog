@@ -4,15 +4,13 @@ import BlogEditor from "../../components/Blog/BlogEditor";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
 import CategorySelect from "../../components/Blog/ui/CategorySelect";
+import type { FieldErrors } from "react-hook-form";
 
 import { showError, showSuccess, showWarning } from "../../utils/toast";
 
 import { fetchAuthorBlogById, publishBlog, updateblog } from "../../api/blog";
 
-import {
-  publishBlogValidation,
-  updateBlogValidation,
-} from "../../validations/blogSchema";
+import { publishBlogValidation } from "../../validations/blogSchema";
 
 import {
   type publishBlogData,
@@ -24,6 +22,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { getErrorMessage } from "../../utils/getErrorMessage";
 
 export default function WriteBlogPage() {
   const [originalData, setOriginalData] = useState<publishBlogData | null>(
@@ -39,16 +38,14 @@ export default function WriteBlogPage() {
 
   const isEditMode = !!id;
 
-  const schema = isEditMode ? updateBlogValidation : publishBlogValidation;
-
   const {
     control,
     register,
     handleSubmit,
     reset,
     formState: { isSubmitting, errors, isDirty },
-  } = useForm<publishBlogData | updateBlogData>({
-    resolver: zodResolver(schema),
+  } = useForm<publishBlogData>({
+    resolver: zodResolver(publishBlogValidation),
 
     defaultValues: {
       title: "",
@@ -61,9 +58,9 @@ export default function WriteBlogPage() {
     },
   });
 
-  const onInvalid = (errors) => {
+  const onInvalid = (errors: FieldErrors<publishBlogData | updateBlogData>) => {
     if (errors.body?.message) {
-      showError(errors.body.message);
+      showError(errors.body.message as string);
     }
   };
 
@@ -82,7 +79,7 @@ export default function WriteBlogPage() {
             body: res.body,
           });
         } catch (error) {
-          showError(error.message);
+          showError(getErrorMessage(error));
         }
       };
 
@@ -90,18 +87,20 @@ export default function WriteBlogPage() {
     }
   }, [id]);
 
-  const getChangedFields = (
-    data: updateBlogData,
-    original: publishBlogData
-  ) => {
-    const changes = {};
-
-    Object.keys(data).forEach((key) => {
-      if (data[key] !== original[key]) {
+  const getChangedFields = <T extends object>(
+    data: T,
+    original: T
+  ): Partial<T> => {
+    const changes: Partial<T> = {};
+  
+    (Object.keys(data) as Array<keyof T>).forEach((key) => {
+      if (
+        JSON.stringify(data[key]) !== JSON.stringify(original[key])
+      ) {
         changes[key] = data[key];
       }
     });
-
+  
     return changes;
   };
 
@@ -112,6 +111,7 @@ export default function WriteBlogPage() {
       }
 
       if (isDirty && isEditMode) {
+        if (!originalData) return;
         const updateData = getChangedFields(data, originalData);
 
         const res = (await updateblog(updateData, id)).data;
@@ -137,10 +137,7 @@ export default function WriteBlogPage() {
 
       navigate("/dashboard");
     } catch (err) {
-      const message =
-        err?.response?.data?.message || err?.message || "Something went wrong";
-
-      showError(message);
+      showError(getErrorMessage(err));
     }
   };
 
@@ -223,7 +220,7 @@ export default function WriteBlogPage() {
                 control={control}
                 render={({ field }) => (
                   <CategorySelect
-                    value={field.value}
+                    value={field.value ?? "PRODUCTIVITY"}
                     onChange={field.onChange}
                   />
                 )}
